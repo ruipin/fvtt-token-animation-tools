@@ -7,7 +7,7 @@
 (function() {
 	const MAJOR_VERSION = 0;
 	const MINOR_VERSION = 2;
-	const PATCH_VERSION = 0;
+	const PATCH_VERSION = 3;
 	const VERSION = `${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION}`;
 
 	// Get global scope
@@ -43,20 +43,15 @@
 
 	class Handler {
 		constructor(fn) {
-			this.set_fn(fn);
-		}
+			this.set(fn);
 
-		get() {
 			let _this = this;
-
-			let fn = function() {
-			return _this._fn(this, ...arguments);
+			this.fn = function() {
+				return _this._fn(this, ...arguments);
 			};
-
-			return fn;
 		}
 
-		set_fn(fn) {
+		set(fn) {
 			this._fn = fn;
 		}
 	}
@@ -79,6 +74,10 @@
 			return VERSION;
 		}
 
+		static get debug() {
+			return false;
+		}
+
 
 		// Constructor
 		constructor (obj, methodName, ...methods) {
@@ -96,27 +95,35 @@
 			// Get wrapped value
 			let descriptor = Object.getOwnPropertyDescriptor(obj, methodName) || { value: undefined };
 
-			if(!descriptor) {
-				this.wrapped = undefined;
-			}
-			else if(descriptor.configurable === false) {
-				let wrapper = descriptor.get?.wrapper;
+			if(descriptor) {
+				if(descriptor.get?.wrapper) {
+					let wrapper = descriptor.get?.wrapper;
 
-				if(wrapper && wrapper.constructor == this.constructor) {
-					if(methods)
-						wrapper.push_back(...methods);
+					if(wrapper && wrapper instanceof this.constructor) {
+						if(methods)
+							wrapper.push_back(...methods);
 
-					return wrapper;
+						return wrapper;
+					}
 				}
 
-				throw `Method '${methodName}' cannot be wrapped, the corresponding descriptor has 'configurable=false'.`;
+
+				if(descriptor.configurable === false) {
+					throw `Method '${methodName}' cannot be wrapped, the corresponding descriptor has 'configurable=false'.`;
+				}
+				else {
+					if(descriptor.get)
+						throw `Wrapping a property ('${methodName}') with a getter/setter is currently not supported.`;
+					else
+						this.wrapped = descriptor.value;
+				}
 			}
 			else {
-				if(descriptor.get)
-					throw "TODO";
-				else
-					this.wrapped = descriptor.value;
+				this.wrapped = undefined;
 			}
+
+			if(this.debug)
+				console.debug(`ResilientWrapper ${VERSION} hooking `);
 
 			this._create_handler();
 			this._wrap();
@@ -131,7 +138,7 @@
 				let _this = this;
 
 				getter = function() {
-					return _this.handler.get();
+					return _this.handler.fn;
 				};
 
 				setter = function(value) {
@@ -142,11 +149,11 @@
 			// Store a reference to this in the getter so that we can support 'singleton'-like functionality
 			getter.wrapper = this;
 
-			// Define a property with configurable=false to avoid someone redefining it later
+			// Define a property with a getter/setter
 			Object.defineProperty(this.object, this.methodName, {
 				get: getter,
 				set: setter,
-				configurable: false
+				configurable: true
 			});
 		}
 
@@ -204,7 +211,6 @@
 		}
 
 		set(value, obj=null) {
-			console.log('set');
 			// If assigning to an instance directly, create a wrapper for the instance
 			if(obj != this.object) {
 				let objWrapper = new this.constructor(obj, this.methodName);
@@ -216,8 +222,8 @@
 			{
 				let wrapped = this.wrapped;
 
-				this.handler.set_fn(function(obj) {
-					return wrapped.apply(obj);
+				this.handler.set(function(obj, ...args) {
+					return wrapped.apply(obj, args);
 				});
 			}
 
@@ -281,7 +287,13 @@
 		};
 	}
 	else {
-		glbl.ResilientWrapper = ResilientWrapper;
+		// define as property so that it can't be as easily deleted
+		delete glbl.ResilientWrapper;
+		Object.defineProperty(glbl, 'ResilientWrapper', {
+			get: () => { return ResilientWrapper; },
+			set: (value) => {},
+			configurable: true
+		});
 	}
 
 

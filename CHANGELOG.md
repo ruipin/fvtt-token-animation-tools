@@ -1,3 +1,7 @@
+# 1.1.2 (2020-07-29)
+
+* Update wrapper library again to fix a mistake that caused some compatibility issues.
+
 # 1.1.1 (2020-07-29)
 
 * Update wrapper library, which should increase compatibility with other modules.
