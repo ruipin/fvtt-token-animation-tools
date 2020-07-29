@@ -5,7 +5,7 @@ Module for Foundry VTT that provides macros and configuration options to control
 ## Features
 
 * Enable/disable Token Animations on a world and/or client level.
-* Disable Token Animations when the 'Control' key is held down.
+* Disable Token Animations when a modifier key is held down.
 * Disable Token Animations automatically when the drag distance is above a user-defined threshold in world coordinates.
 * Disable Token Animations automatically when the duration is above a user-defined threshold in milliseconds.
 * Set a Token Animation duration cap, so that animations will never last longer than a user-defined duration in milliseconds.

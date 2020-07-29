@@ -1,6 +1,9 @@
+// SPDX-License-Identifier: GPLv3-or-later
+// Copyright © 2020 fvtt-token-animation-tools Rui Pinheiro
+
 'use strict';
 
-(function() {
+Hooks.once('ready', () => {
 	const MODULE_NAME = "Token Animation Tools";
 	const MODULE_ID = "token-animation-tools";
 
@@ -8,113 +11,91 @@
 
 	console.log(`Loading ${MODULE_NAME} module...`);
 
-	Hooks.on('ready', () => {
-		game.settings.register(MODULE_ID, 'animate', {
-			name: 'Enable Animations',
-			default: true,
-			type: Boolean,
-			scope: 'world',
-			config: true,
-			hint: 'Whether to animate tokens on drag and drop. If disabled, token movement resolves instantly.'
-		});
 
-		game.settings.register(MODULE_ID, 'animate-client', {
-			name: 'Enable Animations (Client)',
-			default: true,
-			type: Boolean,
-			scope: 'client',
-			config: true,
-			hint: 'Whether to animate tokens on drag and drop. If disabled, token movement resolves instantly. Per-client.'
-		});
-
-		game.settings.register(MODULE_ID, 'ctrl-disables-animation', {
-			name: 'Ctrl Disables Animation',
-			default: false,
-			type: Boolean,
-			scope: 'world',
-			config: true,
-			hint: "If set, all token animations will be disabled when the 'Control' key is held down. For example, if you drag a token and hold the 'Control' key before releasing the token, it will not animate."
-		});
-
-		game.settings.register(MODULE_ID, 'distance-threshold', {
-			name: 'Distance Threshold',
-			default: 0,
-			type: Number,
-			scope: 'world',
-			config: true,
-			hint: 'Token animations will be automatically disabled if the distance in world coordinates is larger than this threshold. Use "0" to disable.'
-		});
-
-		game.settings.register(MODULE_ID, 'duration-threshold', {
-			name: 'Duration Threshold (ms)',
-			default: 0,
-			type: Number,
-			scope: 'world',
-			config: true,
-			hint: 'Token animations will be automatically disabled if the animation duration in milliseconds is larger than this threshold. Use "0" to disable.'
-		});
-
-		game.settings.register(MODULE_ID, 'duration-cap', {
-			name: 'Duration Cap (ms)',
-			default: 0,
-			type: Number,
-			scope: 'world',
-			config: true,
-			hint: 'Token animations will be sped up if they would take more than this number of milliseconds to complete. Use "0" to disable.'
-		});
-
-		game.settings.register(MODULE_ID, 'speed', {
-			name: 'Speed (spaces per second)',
-			default: ORIGINAL_TOKEN_SPEED,
-			type: Number,
-			scope: 'world',
-			config: true,
-			hint: `Token Animation speed in spaces per second. Default is '${ORIGINAL_TOKEN_SPEED}'.`
-		});
+	//---------------------------
+	// Settings
+	game.settings.register(MODULE_ID, 'animate', {
+		name: 'Enable Animations',
+		default: true,
+		type: Boolean,
+		scope: 'world',
+		config: true,
+		hint: 'Whether to animate tokens on drag and drop. If disabled, token movement resolves instantly.'
 	});
 
-	let getSetting = function(key) {
-		try {
-			return game.settings.get(MODULE_ID, key);
-		}
-		catch {
-			return null;
-		}
-	};
+	game.settings.register(MODULE_ID, 'animate-client', {
+		name: 'Enable Animations (Client)',
+		default: true,
+		type: Boolean,
+		scope: 'client',
+		config: true,
+		hint: 'Whether to animate tokens on drag and drop. If disabled, token movement resolves instantly. Per-client.'
+	});
+
+	game.settings.register(MODULE_ID, 'modifier-disables-animation', {
+		name: 'Modifier Key Disables Animation',
+		default: 0,
+		type: String,
+		choices: {
+			0: "None",
+			1: "Control",
+			2: "Alt",
+			3: "Shift"
+		},
+		scope: 'world',
+		config: true,
+		hint: "If set, all token animations will be disabled when the chosen modifier key is held down. For example, if set to 'Control', if you drag a token and hold the 'Control' key before releasing the token, it will not animate."
+	});
+
+	game.settings.register(MODULE_ID, 'distance-threshold', {
+		name: 'Distance Threshold',
+		default: 0,
+		type: Number,
+		scope: 'world',
+		config: true,
+		hint: 'Token animations will be automatically disabled if the distance in world coordinates is larger than this threshold. Use "0" to disable.'
+	});
+
+	game.settings.register(MODULE_ID, 'duration-threshold', {
+		name: 'Duration Threshold (ms)',
+		default: 0,
+		type: Number,
+		scope: 'world',
+		config: true,
+		hint: 'Token animations will be automatically disabled if the animation duration in milliseconds is larger than this threshold. Use "0" to disable.'
+	});
+
+	game.settings.register(MODULE_ID, 'duration-cap', {
+		name: 'Duration Cap (ms)',
+		default: 0,
+		type: Number,
+		scope: 'world',
+		config: true,
+		hint: 'Token animations will be sped up if they would take more than this number of milliseconds to complete. Use "0" to disable.'
+	});
+
+	game.settings.register(MODULE_ID, 'speed', {
+		name: 'Speed (spaces per second)',
+		default: ORIGINAL_TOKEN_SPEED,
+		type: Number,
+		scope: 'world',
+		config: true,
+		hint: `Token Animation speed in spaces per second. Default is '${ORIGINAL_TOKEN_SPEED}'.`
+	});
+
+	const getSetting = game.settings.get.bind(game.settings, MODULE_ID);
 
 
 	//---------------------------
 	// Hook the Token animateMovement method and implement the main module functionality
-	Token.prototype.animateMovement = (function () {
-		const animateMovement = Token.prototype.animateMovement;
+	new ResilientWrapper(CanvasAnimation, 'animateLinear', (function() {
+		const skipAnimation = function(wrapped, ...args) {
+			args[1].duration = 0;
 
-		// Skips Animation
-		let skipAnimation = function() {
-			return Promise.resolve();
+			return wrapped.apply(this, args);
 		};
 
-		// Modified version of Token.animateMovement
-		let customAnimateMovement = async function(ray, speed, duration) {
-			this._movement = ray;
-
-			if(speed == null)
-				speed = (ray.distance * 1000) / duration;
-			if(duration == null)
-				duration = (ray.distance * 1000) / speed;
-
-			// Define attributes
-			const attributes = [
-			  { parent: this, attribute: 'x', to: ray.B.x },
-			  { parent: this, attribute: 'y', to: ray.B.y }
-			];
-
-			// Trigger the animation function
-			let animationName = `Token.${this.id}.animateMovement`;
-			await CanvasAnimation.animateLinear(attributes, { name: animationName, context: this, duration: duration });
-			this._movement = null;
-		};
-
-		let getSpeedInSpaces = function() {
+		const getSpeedInSpaces = function() {
 			let customSpeed = getSetting('speed');
 
 			if(customSpeed > 0)
@@ -123,52 +104,62 @@
 			return ORIGINAL_TOKEN_SPEED;
 		}
 
-		let getSpeed = function() {
+		const getSpeed = function() {
 			return canvas.dimensions.size * getSpeedInSpaces();
 		};
 
-		let getUncappedDuration = function(ray) {
+		const getUncappedDuration = function(ray) {
 			return (ray.distance * 1000) / getSpeed();
 		};
 
-		return function () {
-			let ray = arguments[0];
+
+		return async function(wrapped, ...args) {
+			let options = args[1];
+
+			// Check if we should skip the hook
+			let name = options.name;
+			if(options.duration === 0 || !name || !name.startsWith('Token.') || !name.endsWith('.animateMovement'))
+				return wrapped.apply(this, args);
+
+
+			// Get token object and movement ray
+			let token = args[0][0].parent;
+			let ray = token._movement;
+
 
 			// Check global disables first
 			if(!getSetting('animate-client') || !getSetting('animate'))
-				return skipAnimation();
+				return skipAnimation.apply(this, arguments);
 
 
 			// Check distance threshold
 			let distanceThreshold = getSetting('distance-threshold');
 
 			if(distanceThreshold > 0 && ray.distance >= distanceThreshold)
-				return skipAnimation();
+				return skipAnimation.apply(this, arguments);
 
 
-			// Check duration threshold/cap
+			// Check duration and speed
 			let durationThreshold = getSetting('duration-threshold');
 			let durationCap = getSetting('duration-cap');
+			let customSpeed = getSpeed(token);
 
 			if(durationThreshold > 0 && (durationCap == 0 || durationThreshold < durationCap)) {
 				if(getUncappedDuration(ray) > durationThreshold)
-					return skipAnimation();
+					return skipAnimation.apply(this, arguments);
 			}
 
+			// Apply custom duration/speed (if any)
 			if(durationCap > 0 && getUncappedDuration(ray) > durationCap)
-				return customAnimateMovement.apply(this, [ray, null, durationCap]);
-
-
-			// Apply custom speed (if any)
-			if(getSpeedInSpaces() != ORIGINAL_TOKEN_SPEED)
-				return customAnimateMovement.apply(this, [ray, getSpeed(), null]);
+				options.duration = durationCap;
+			else if(customSpeed != ORIGINAL_TOKEN_SPEED)
+				options.duration = (ray.distance * 1000) / customSpeed;
 
 
 			// Call original function
-			return animateMovement.apply(this, arguments);
-		};
-	})();
-
+			return wrapped.apply(this, args);
+		}
+	})());
 
 
 	//---------------------------
@@ -194,19 +185,26 @@
 
 	//---------------------------
 	// If holding Control, do not animate a token on a drag drop
+	const MODIFIER_KEYS = {
+		1: 'ctrlKey',
+		2: 'altKey',
+		3: 'shiftKey'
+	};
+
 	Hooks.on('preUpdateToken', (parent, entity, diff, options, user_id) => {
-		if(!getSetting('ctrl-disables-animation'))
+		let modifier = getSetting('modifier-disables-animation');
+
+		if(!modifier)
 			return;
+
+		let keyVar = MODIFIER_KEYS[modifier];
 
 		let e = window.event;
 		if(!e)
 			return;
 
-		if(e.ctrlKey && ('x' in diff || 'y' in diff) && !('concludeAnimations' in options)) {
+		if(e[keyVar] && ('x' in diff || 'y' in diff) && !('concludeAnimations' in options)) {
 			options.concludeAnimations = true;
 		}
 	});
-
-
-})();
-
+});
