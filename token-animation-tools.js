@@ -3,6 +3,8 @@
 
 'use strict';
 
+import {libWrapper} from './shim.js';
+
 Hooks.once('ready', () => {
 	const MODULE_NAME = "Token Animation Tools";
 	const MODULE_ID = "token-animation-tools";
@@ -88,7 +90,7 @@ Hooks.once('ready', () => {
 
 	//---------------------------
 	// Hook the Token animateMovement method and implement the main module functionality
-	new ResilientWrapper(CanvasAnimation, 'animateLinear', (function() {
+	libWrapper.register(MODULE_ID, 'CanvasAnimation.animateLinear', (function() {
 		const skipAnimation = function(wrapped, ...args) {
 			args[1].duration = 0;
 
