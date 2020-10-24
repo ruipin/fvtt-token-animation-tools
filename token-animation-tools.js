@@ -172,16 +172,26 @@ Hooks.once('ready', () => {
 
 		let t = canvas.tokens.get(data._id);
 		if(t._movement) {
-			// see TokenLayer.concludeAnimations()
+			// see TokenLayer.concludeAnimations(), Token.animateMovement() and Token.setPosition()
+
+			// Stop animation
 			let ray = t._movement;
 			t._movement = null;
 			t.stopAnimation();
+
+			// Update position to the destination
 			t.position.set(ray.B.x, ray.B.y);
+			data.x = ray.B.x;
+			data.y = ray.B.y;
+
+			// Update sight
+			t.light.coloration.position.set(0, 0);
+			t.updateSource();
 		}
 	});
 
 	TokenLayer.prototype.updateConcludeAnimations = function () {
-		canvas.tokens.updateMany(canvas.tokens.placeables.filter(t => t._movement).map(t => ({  _id: t.data._id })), {diff: false, concludeAnimations: true});
+		canvas.tokens.updateMany(canvas.tokens.placeables.filter(t => t._movement).map(t => ({ _id: t.data._id })), {diff: false, concludeAnimations: true});
 	};
 
 

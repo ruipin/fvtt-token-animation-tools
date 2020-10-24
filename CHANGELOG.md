@@ -1,3 +1,9 @@
+# 1.1.5 (2020-10-24)
+
+* Fix instant token movement completion not updating the token vision.
+* Officially remove 0.6.x support.
+
+
 # 1.1.4 (2020-10-22)
 
 * Update libWrapper shim to latest version.
