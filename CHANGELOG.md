@@ -1,8 +1,12 @@
+# 1.1.5.2 (2020-11-15)
+
+* No code changes.
+* Explicitly announce compatibility with Foundry 0.7.7.
+
 # 1.1.5 (2020-10-24)
 
 * Fix instant token movement completion not updating the token vision.
 * Officially remove 0.6.x support.
-
 
 # 1.1.4 (2020-10-22)
 
