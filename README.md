@@ -1,6 +1,15 @@
 # FVTT Token Animation Tools
 Module for Foundry VTT that provides macros and configuration options to control Token animations.
 
+[![License](https://img.shields.io/github/license/ruipin/fvtt-token-animation-tools)](LICENSE)
+[![Build Release](https://github.com/ruipin/fvtt-token-animation-tools/workflows/Build%20Release/badge.svg)](https://github.com/ruipin/fvtt-token-animation-tools/releases/latest)
+[![Version (latest)](https://img.shields.io/github/v/release/ruipin/fvtt-token-animation-tools)](https://github.com/ruipin/fvtt-token-animation-tools/releases/latest)
+[![Foundry Version](https://img.shields.io/badge/dynamic/json.svg?url=https://github.com/ruipin/fvtt-token-animation-tools/releases/latest/download/module.json&label=Foundry%20Version&query=$.compatibleCoreVersion&colorB=blueviolet)](https://github.com/ruipin/fvtt-token-animation-tools/releases/latest)
+[![GitHub downloads (latest)](https://img.shields.io/badge/dynamic/json?label=Downloads@latest&query=assets[?(@.name.includes('zip'))].download_count&url=https://api.github.com/repos/ruipin/fvtt-token-animation-tools/releases/latest&color=green)](https://github.com/ruipin/fvtt-token-animation-tools/releases/latest)
+[![Forge Install Base](https://img.shields.io/badge/dynamic/json?label=Forge%20Install%20Base&query=package.installs&suffix=%&url=https://forge-vtt.com/api/bazaar/package/token-animation-tools&colorB=brightgreen)](https://forge-vtt.com/)
+[![GitHub issues](https://img.shields.io/github/issues-raw/ruipin/fvtt-token-animation-tools)](https://github.com/ruipin/fvtt-token-animation-tools/issues)
+[![Ko-fi](https://img.shields.io/badge/-buy%20me%20a%20coffee-%23FF5E5B?logo=Ko-fi&logoColor=white)](https://ko-fi.com/ruipin)
+
 
 ## Features
 
