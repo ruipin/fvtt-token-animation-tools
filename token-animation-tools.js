@@ -166,11 +166,11 @@ Hooks.once('ready', () => {
 
 	//---------------------------
 	// Allow GM to instantly finish animations using a macro
-	Hooks.on('updateToken', (parent, data, update, options, userId) => {
+	Hooks.on('updateToken', (doc, diff, options, userId) => {
 		if(!options.concludeAnimations)
 			return;
 
-		let t = canvas.tokens.get(data._id);
+		let t = doc._object;
 		if(t._movement) {
 			// see TokenLayer.concludeAnimations(), Token.animateMovement() and Token.setPosition()
 
@@ -181,8 +181,6 @@ Hooks.once('ready', () => {
 
 			// Update position to the destination
 			t.position.set(ray.B.x, ray.B.y);
-			data.x = ray.B.x;
-			data.y = ray.B.y;
 
 			// Update sight
 			t.light.coloration.position.set(0, 0);
@@ -203,15 +201,14 @@ Hooks.once('ready', () => {
 		3: 'shiftKey'
 	};
 
-	Hooks.on('preUpdateToken', (parent, entity, diff, options, user_id) => {
-		let modifier = getSetting('modifier-disables-animation');
-
+	Hooks.on('preUpdateToken', (doc, diff, options, userId) => {
+		const modifier = getSetting('modifier-disables-animation');
 		if(!modifier)
 			return;
 
-		let keyVar = MODIFIER_KEYS[modifier];
+		const keyVar = MODIFIER_KEYS[modifier];
 
-		let e = window.event;
+		const e = window.event;
 		if(!e)
 			return;
 
