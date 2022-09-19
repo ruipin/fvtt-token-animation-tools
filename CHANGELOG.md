@@ -1,3 +1,8 @@
+# 1.3.0.0 (2022-09-19)
+
+- Add support for Foundry v10. Older versions no longer supported.
+- Update libWrapper shim to latest version.
+
 # 1.2.1.0 (2021-12-13)
 
 - Update libWrapper shim to latest version.

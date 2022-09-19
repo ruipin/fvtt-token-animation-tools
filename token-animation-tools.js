@@ -9,7 +9,7 @@ Hooks.once('ready', () => {
 	const MODULE_NAME = "Token Animation Tools";
 	const MODULE_ID = "token-animation-tools";
 
-	const ORIGINAL_TOKEN_SPEED = 10; // from Token.animateMovement
+	const ORIGINAL_TOKEN_SPEED = 6; // from Token.animateMovement
 
 	console.log(`Loading ${MODULE_NAME} module...`);
 
@@ -89,79 +89,131 @@ Hooks.once('ready', () => {
 
 
 	//---------------------------
-	// Hook the Token animateMovement method and implement the main module functionality
-	libWrapper.register(MODULE_ID, 'CanvasAnimation.animateLinear', (function() {
-		const skipAnimation = function(wrapped, ...args) {
-			args[1].duration = 0;
+	// Helper functions / classes
+	class TokenAnimationRay {
+		static fromAnimationAttributes(token, attributes) {
+			// Get x/y coordinates
+			let x, y;
+			for(const attr of attributes) {
+				switch(attr.attribute) {
+					case 'x':
+						x = attr;
+						break;
+					case 'y':
+						y = attr;
+						break;
+					default:
+						continue;
+				}
 
-			return wrapped.apply(this, args);
-		};
+				if(x && y)
+					break;
+			}
 
-		const getSpeedInSpaces = function() {
-			let customSpeed = getSetting('speed');
+			// If we're not animating in at least one of the X/Y coordinates, we don't return any ray
+			if(!x && !y)
+				return null;
 
+			// Create ray
+			return new this(x?.from ?? token.x, x?.to ?? token.x, y?.from ?? token.y, y?.to ?? token.y);
+		}
+
+		get speedInSpaces() {
+			const customSpeed = getSetting('speed');
 			if(customSpeed > 0)
 				return customSpeed;
 
 			return ORIGINAL_TOKEN_SPEED;
 		}
 
-		const getSpeed = function() {
-			return canvas.dimensions.size * getSpeedInSpaces();
+		get speed() {
+			return canvas.dimensions.size * this.speedInSpaces;
 		};
 
-		const getUncappedDuration = function(ray) {
-			return (ray.distance * 1000) / getSpeed();
-		};
+		constructor(xFrom, xTo, yFrom, yTo) {
+			this.xFrom = xFrom;
+			this.xTo   = xTo;
 
-
-		return async function(wrapped, ...args) {
-			let options = args[1];
-
-			// Check if we should skip the hook
-			let name = options.name;
-			if(options.duration === 0 || !name || !name.startsWith('Token.') || !name.endsWith('.animateMovement'))
-				return wrapped.apply(this, args);
-
-
-			// Get token object and movement ray
-			let token = args[0][0].parent;
-			let ray = token._movement;
-
-
-			// Check global disables first
-			if(!getSetting('animate-client') || !getSetting('animate'))
-				return skipAnimation.apply(this, arguments);
-
-
-			// Check distance threshold
-			let distanceThreshold = getSetting('distance-threshold');
-
-			if(distanceThreshold > 0 && ray.distance >= distanceThreshold)
-				return skipAnimation.apply(this, arguments);
-
-
-			// Check duration and speed
-			let durationThreshold = getSetting('duration-threshold');
-			let durationCap = getSetting('duration-cap');
-			let customSpeed = getSpeed(token);
-
-			if(durationThreshold > 0 && (durationCap == 0 || durationThreshold < durationCap)) {
-				if(getUncappedDuration(ray) > durationThreshold)
-					return skipAnimation.apply(this, arguments);
-			}
-
-			// Apply custom duration/speed (if any)
-			if(durationCap > 0 && getUncappedDuration(ray) > durationCap)
-				options.duration = durationCap;
-			else if(customSpeed != ORIGINAL_TOKEN_SPEED)
-				options.duration = (ray.distance * 1000) / customSpeed;
-
-
-			// Call original function
-			return wrapped.apply(this, args);
+			this.yFrom = yFrom;
+			this.yTo   = yTo;
 		}
-	})());
+
+		get distance() {
+			if(this._distance === undefined) {
+				const xDeltaSpaces = (this.xTo - this.xFrom) / canvas.dimensions.size;
+				const yDeltaSpaces = (this.yTo - this.yFrom) / canvas.dimensions.size;
+				this._distance = Math.hypot(xDeltaSpaces, yDeltaSpaces);
+			}
+			return this._distance;
+		}
+
+		get duration() {
+			if(this._duration === undefined) {
+				this._duration = (this.distance * 1000 * canvas.dimensions.size) / this.speed;
+			}
+			return this._duration;
+		}
+	}
+
+
+	//---------------------------
+	// Hook the Token animation code
+	libWrapper.register(MODULE_ID, 'CanvasAnimation.animate', async function(wrapped, ...args) {
+		console.log('Canvas.animate', args);
+
+		// Easier to use names for the parameters
+		const attributes = args[0];
+		const options    = args[1];
+
+		// Helper function
+		function skip(reason) {
+			console.log(`Skipping animation because of ${reason}`);
+			options.duration = 0;
+			return wrapped(...args);
+		}
+
+		// Check if we should skip the hook
+		const name = options.name;
+		if(options.duration === 0 || !name || !name.startsWith('Token.') || !name.endsWith('.animate'))
+			return wrapped(...args);
+
+		// Check global disables first
+		if(!getSetting('animate-client') || !getSetting('animate'))
+			return skip('Global disable');
+
+		// Get token object
+		const token = options.context;
+		if(!token)
+			throw new Error('Token Animation Tools could not find animation context');
+
+		// Get animation ray
+		const ray = TokenAnimationRay.fromAnimationAttributes(token, attributes);
+		if(!ray)
+			return wrapped(...args);
+
+		// Check distance threshold
+		const distanceThreshold = getSetting('distance-threshold');
+		console.log(`Distance: ${ray.distance} vs ${distanceThreshold}`);
+		if(distanceThreshold > 0 && ray.distance >= distanceThreshold)
+			return skip('Distance threshold');
+
+		// Check duration threshold
+		const durationThreshold = getSetting('duration-threshold');
+		console.log(`Duration: ${ray.duration} vs ${durationThreshold} (Original: ${options.duration})`);
+		if(durationThreshold > 0 && ray.duration > durationThreshold)
+			return skip('Duration threshold');
+
+		// Apply custom speed
+		options.duration = ray.duration;
+
+		// Apply duration cap / speed
+		const durationCap = getSetting('duration-cap');
+		if(durationCap > 0 && options.duration > durationCap)
+			options.duration = durationCap;
+
+		// Call original function
+		return wrapped(...args);
+	});
 
 
 	//---------------------------
@@ -170,26 +222,27 @@ Hooks.once('ready', () => {
 		if(!options.concludeAnimations)
 			return;
 
-		let t = doc._object;
-		if(t._movement) {
-			// see TokenLayer.concludeAnimations(), Token.animateMovement() and Token.setPosition()
+		// Get token object
+		const token = doc._object;
 
-			// Stop animation
-			let ray = t._movement;
-			t._movement = null;
-			t.stopAnimation();
-
-			// Update position to the destination
-			t.position.set(ray.B.x, ray.B.y);
-
-			// Update sight
-			t.light.coloration.position.set(0, 0);
-			t.updateSource();
+		// Stop token animation
+		if(token && token._animation) {
+			// We set the animation elapsed time to the duration, which will cause the neck tick to be the last
+			const animation = CanvasAnimation.getAnimation(token.animationName);
+			animation.time = animation.duration;
+			CanvasAnimation._animateFrame(0, animation);
 		}
 	});
 
 	TokenLayer.prototype.updateConcludeAnimations = function () {
-		canvas.tokens.updateMany(canvas.tokens.placeables.filter(t => t._movement).map(t => ({ _id: t.data._id })), {diff: false, concludeAnimations: true});
+		// Select all tokens that have an active movement
+		const updates = canvas.tokens.placeables.filter(t => t._animation).map(t => ({ _id: t.id }));
+
+		// Force an update by disabling the diffing, and trigger 'concludeAnimations'
+		const context = {diff: false, concludeAnimations: true};
+
+		// Fire update request
+		canvas.scene.updateEmbeddedDocuments("Token", updates, context);
 	};
 
 
