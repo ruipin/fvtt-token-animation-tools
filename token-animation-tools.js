@@ -159,7 +159,7 @@ Hooks.once('ready', () => {
 	//---------------------------
 	// Hook the Token animation code
 	libWrapper.register(MODULE_ID, 'CanvasAnimation.animate', async function(wrapped, ...args) {
-		console.log('Canvas.animate', args);
+		//console.log('Canvas.animate', args);
 
 		// Easier to use names for the parameters
 		const attributes = args[0];
@@ -167,7 +167,7 @@ Hooks.once('ready', () => {
 
 		// Helper function
 		function skip(reason) {
-			console.log(`Skipping animation because of ${reason}`);
+			//console.log(`Skipping animation because of ${reason}`);
 			options.duration = 0;
 			return wrapped(...args);
 		}
@@ -193,13 +193,13 @@ Hooks.once('ready', () => {
 
 		// Check distance threshold
 		const distanceThreshold = getSetting('distance-threshold');
-		console.log(`Distance: ${ray.distance} vs ${distanceThreshold}`);
+		//console.log(`Distance: ${ray.distance} vs ${distanceThreshold}`);
 		if(distanceThreshold > 0 && ray.distance >= distanceThreshold)
 			return skip('Distance threshold');
 
 		// Check duration threshold
 		const durationThreshold = getSetting('duration-threshold');
-		console.log(`Duration: ${ray.duration} vs ${durationThreshold} (Original: ${options.duration})`);
+		//console.log(`Duration: ${ray.duration} vs ${durationThreshold} (Original: ${options.duration})`);
 		if(durationThreshold > 0 && ray.duration > durationThreshold)
 			return skip('Duration threshold');
 

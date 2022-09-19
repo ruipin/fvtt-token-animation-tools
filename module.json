@@ -2,7 +2,7 @@
 	"id": "token-animation-tools",
 	"title": "Token Animation Tools",
 	"description": "Provides macros and configuration options to control Token animations.",
-	"version": "1.3.0.0",
+	"version": "1.3.1.0",
 	"authors": [{
 		"name": "Rui Pinheiro",
 		"url": "https://github.com/ruipin"

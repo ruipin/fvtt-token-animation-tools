@@ -1,3 +1,7 @@
+# 1.3.1.0 (2022-09-19)
+
+- Remove debug log messages that were accidentally left in v1.3.0.0.
+
 # 1.3.0.0 (2022-09-19)
 
 - Add support for Foundry v10. Older versions no longer supported.
