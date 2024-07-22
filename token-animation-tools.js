@@ -226,11 +226,10 @@ Hooks.once('ready', () => {
 		const token = doc._object;
 
 		// Stop token animation
-		if(token && token._animation) {
+		if(token && token.animationName) {
 			// We set the animation elapsed time to the duration, which will cause the neck tick to be the last
 			const animation = CanvasAnimation.getAnimation(token.animationName);
 			animation.time = animation.duration;
-			CanvasAnimation._animateFrame(0, animation);
 		}
 	});
 
