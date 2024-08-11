@@ -265,8 +265,9 @@ Hooks.once('ready', () => {
 		if(!e)
 			return;
 
-		if(e[keyVar] && ('x' in diff || 'y' in diff) && !('concludeAnimations' in options)) {
+		if(e[keyVar] && ('x' in diff || 'y' in diff) && !('concludeAnimations' in options) && !('animate' in options)) {
 			options.concludeAnimations = true;
+			options.animate = false;
 		}
 	});
 });
